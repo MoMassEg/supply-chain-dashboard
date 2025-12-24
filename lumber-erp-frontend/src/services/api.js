@@ -300,3 +300,14 @@ export const auditLogsAPI = {
 };
 
 export default api;
+
+
+// ===== ROLE PERMISSIONS =====
+export const rolePermissionsAPI = {
+  getAll: () => api.get('/rolepermissions'),
+  getByRole: (roleId) => api.get(`/rolepermissions/role?id=${roleId}`),
+  getByPermission: (permissionId) => api.get(`/rolepermissions/permission?id=${permissionId}`),
+  create: (data) => api.post('/rolepermissions', data),
+  delete: (roleId, permissionId) => api.delete(`/rolepermission?role_id=${roleId}&permission_id=${permissionId}`),
+  assignPermissions: (roleId, permissionIds) => api.post('/rolepermissions/assign', { role_id: roleId, permission_ids: permissionIds }),
+};

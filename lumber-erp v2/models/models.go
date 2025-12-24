@@ -28,6 +28,7 @@ type Role struct {
 	Description string `json:"description"`
 }
 
+
 type RolePermission struct {
 	RoleID       int `json:"role_id"`
 	PermissionID int `json:"permission_id"`

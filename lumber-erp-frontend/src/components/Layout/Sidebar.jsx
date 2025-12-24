@@ -41,6 +41,7 @@ const Sidebar = () => {
         { path: '/users', label: 'Users' },
         { path: '/permissions', label: 'Permissions' },
         { path: '/roles', label: 'Roles' },
+        { path: '/role-permissions', label: 'role-permissions' },
       ]
     },
     

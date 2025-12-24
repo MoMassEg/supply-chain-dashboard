@@ -18,6 +18,8 @@ import Profile from './components/Profile/Profile';
 import UserList from './components/Users/UserList';
 import PermissionList from './components/Permissions/PermissionList';
 import RoleList from './components/Roles/RoleList';
+import RolePermissionList from './components/RolePermissions/RolePermissionList';
+
 
 // HR & Employees
 import EmployeeList from './components/Employees/EmployeeList';
@@ -101,6 +103,7 @@ function App() {
             <Route path="users" element={<UserList />} />
             <Route path="permissions" element={<PermissionList />} />
             <Route path="roles" element={<RoleList />} />
+            <Route path="/role-permissions" element={<RolePermissionList />} />
             
             {/* HR & Employees */}
             <Route path="employees" element={<EmployeeList />} />

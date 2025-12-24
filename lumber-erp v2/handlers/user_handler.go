@@ -207,3 +207,132 @@ func DeleteRole(w http.ResponseWriter, r *http.Request) {
 	}
 	utils.RespondSuccess(w, "Role deleted successfully")
 }
+// ==================== ROLE PERMISSIONS ====================
+func CreateRolePermission(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	var rp models.RolePermission
+	json.NewDecoder(r.Body).Decode(&rp)
+
+	query := `INSERT INTO RolePermission (Role_ID, PermissionID) VALUES ($1, $2)`
+	_, err := config.DB.Exec(query, rp.RoleID, rp.PermissionID)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondJSON(w, http.StatusCreated, rp)
+}
+
+func GetRolePermissions(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	rows, err := config.DB.Query(`SELECT Role_ID, PermissionID FROM RolePermission ORDER BY Role_ID`)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	rolePermissions := []models.RolePermission{}
+	for rows.Next() {
+		var rp models.RolePermission
+		rows.Scan(&rp.RoleID, &rp.PermissionID)
+		rolePermissions = append(rolePermissions, rp)
+	}
+	utils.RespondJSON(w, http.StatusOK, rolePermissions)
+}
+
+func GetRolePermissionsByRole(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	roleID := r.URL.Query().Get("id")
+	
+	rows, err := config.DB.Query(`SELECT Role_ID, PermissionID FROM RolePermission WHERE Role_ID = $1`, roleID)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	rolePermissions := []models.RolePermission{}
+	for rows.Next() {
+		var rp models.RolePermission
+		rows.Scan(&rp.RoleID, &rp.PermissionID)
+		rolePermissions = append(rolePermissions, rp)
+	}
+	utils.RespondJSON(w, http.StatusOK, rolePermissions)
+}
+
+func GetRolePermissionsByPermission(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	permissionID := r.URL.Query().Get("id")
+	
+	rows, err := config.DB.Query(`SELECT Role_ID, PermissionID FROM RolePermission WHERE PermissionID = $1`, permissionID)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	rolePermissions := []models.RolePermission{}
+	for rows.Next() {
+		var rp models.RolePermission
+		rows.Scan(&rp.RoleID, &rp.PermissionID)
+		rolePermissions = append(rolePermissions, rp)
+	}
+	utils.RespondJSON(w, http.StatusOK, rolePermissions)
+}
+
+func DeleteRolePermission(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	roleID := r.URL.Query().Get("role_id")
+	permissionID := r.URL.Query().Get("permission_id")
+	
+	_, err := config.DB.Exec(`DELETE FROM RolePermission WHERE Role_ID = $1 AND PermissionID = $2`, roleID, permissionID)
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	utils.RespondSuccess(w, "RolePermission deleted successfully")
+}
+
+func AssignPermissionsToRole(w http.ResponseWriter, r *http.Request) {
+	utils.EnableCORS(&w)
+	
+	var data struct {
+		RoleID        int   `json:"role_id"`
+		PermissionIDs []int `json:"permission_ids"`
+	}
+	json.NewDecoder(r.Body).Decode(&data)
+
+	// Start transaction
+	tx, err := config.DB.Begin()
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Delete existing permissions for this role
+	_, err = tx.Exec(`DELETE FROM RolePermission WHERE Role_ID = $1`, data.RoleID)
+	if err != nil {
+		tx.Rollback()
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Insert new permissions
+	for _, permID := range data.PermissionIDs {
+		_, err = tx.Exec(`INSERT INTO RolePermission (Role_ID, PermissionID) VALUES ($1, $2)`, data.RoleID, permID)
+		if err != nil {
+			tx.Rollback()
+			utils.RespondError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+	}
+
+	// Commit transaction
+	err = tx.Commit()
+	if err != nil {
+		utils.RespondError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.RespondSuccess(w, "Permissions assigned successfully")
+}

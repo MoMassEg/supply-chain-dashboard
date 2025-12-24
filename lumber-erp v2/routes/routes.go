@@ -143,6 +143,16 @@ func SetupRoutes() {
 
 	// ==================== AUDIT & LOGS ====================
 	http.HandleFunc("/api/auditlogs", HandleRequest(handlers.GetAuditLogs, handlers.CreateAuditLog, nil, nil))
+
+// ==================== ROLE PERMISSIONS ====================
+http.HandleFunc("/api/rolepermissions", HandleRequest(handlers.GetRolePermissions, handlers.CreateRolePermission, nil, nil))
+http.HandleFunc("/api/rolepermissions/role", HandleRequest(handlers.GetRolePermissionsByRole, nil, nil, nil))
+http.HandleFunc("/api/rolepermissions/permission", HandleRequest(handlers.GetRolePermissionsByPermission, nil, nil, nil))
+http.HandleFunc("/api/rolepermissions/assign", HandleRequest(nil, handlers.AssignPermissionsToRole, nil, nil))
+http.HandleFunc("/api/rolepermission", HandleRequest(nil, nil, nil, handlers.DeleteRolePermission))
+	// Add these routes to your router setup
+
+
 }
 
 // HandleRequest is a helper function to handle multiple HTTP methods
