@@ -301,7 +301,6 @@ export const auditLogsAPI = {
 
 export default api;
 
-
 // ===== ROLE PERMISSIONS =====
 export const rolePermissionsAPI = {
   getAll: () => api.get('/rolepermissions'),
