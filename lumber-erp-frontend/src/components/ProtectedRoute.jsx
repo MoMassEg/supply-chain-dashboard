@@ -25,7 +25,6 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
         setLoading(true);
         console.log('🔍 [ProtectedRoute] Fetching permissions for user:', user.user_id);
 
-        // Step 1: Get user's role
         const rolesResponse = await axios.get(`${API_URL}/roles`);
         const userRole = rolesResponse.data.find(role => role.user_id === user.user_id);
         
@@ -38,19 +37,14 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 
         console.log('✅ [ProtectedRoute] User role:', userRole);
 
-        // Step 2: Get role permissions (role_id + permission_id pairs)
         const rolePermsResponse = await axios.get(`${API_URL}/rolepermissions`);
         const userRolePerms = rolePermsResponse.data.filter(
           rp => rp.role_id === userRole.role_id
         );
 
-        console.log('📋 [ProtectedRoute] Role permission mappings:', userRolePerms);
-
-        // Step 3: Get all permissions details
         const permissionsResponse = await axios.get(`${API_URL}/permissions`);
         const allPermissions = permissionsResponse.data;
 
-        // Step 4: Match permission IDs to get full permission details
         const userPermissionDetails = userRolePerms.map(rp => {
           const permDetail = allPermissions.find(p => p.permission_id === rp.permission_id);
           return permDetail;
@@ -70,172 +64,105 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
     fetchUserPermissions();
   }, [user]);
 
-  // Route permission mapping
-  const routePermissions = {
-    '/': true,
-    '/profile': true,
-    '/users': [
-      { module: 'Users', action: 'View' },
-      { module: 'User Management', action: 'READ' },
-    ],
-    '/permissions': [
-      { module: 'Permissions', action: 'View' },
-      { module: 'User Management', action: 'READ' },
-    ],
-    '/roles': [
-      { module: 'Roles', action: 'View' },
-      { module: 'User Management', action: 'READ' },
-    ],
-    '/role-permissions': [
-      { module: 'RolePermissions', action: 'View' },
-      { module: 'User Management', action: 'READ' },
-    ],
-    '/employees': [
-      { module: 'Employees', action: 'View' },
-      { module: 'HR & Employees', action: 'READ' },
-    ],
-    '/worker-assignments': [
-      { module: 'WorkerAssignments', action: 'View' },
-      { module: 'HR & Employees', action: 'READ' },
-    ],
-    '/management-insights': [
-      { module: 'ManagementInsights', action: 'View' },
-      { module: 'HR & Employees', action: 'READ' },
-    ],
-    '/suppliers': [
-      { module: 'Suppliers', action: 'View' },
-    ],
-    '/supplier-performance': [
-      { module: 'SupplierPerformance', action: 'View' },
-    ],
-    '/supplier-contracts': [
-      { module: 'SupplierContracts', action: 'View' },
-    ],
-    '/forests': [
-      { module: 'Forests', action: 'View' },
-    ],
-    '/tree-species': [
-      { module: 'TreeSpecies', action: 'View' },
-    ],
-    '/harvest-schedules': [
-      { module: 'HarvestSchedules', action: 'View' },
-    ],
-    '/harvest-batches': [
-      { module: 'HarvestBatches', action: 'View' },
-    ],
-    '/sawmills': [
-      { module: 'Sawmills', action: 'View' },
-    ],
-    '/processing-units': [
-      { module: 'ProcessingUnits', action: 'View' },
-    ],
-    '/processing-orders': [
-      { module: 'ProcessingOrders', action: 'View' },
-    ],
-    '/maintenance-records': [
-      { module: 'MaintenanceRecords', action: 'View' },
-    ],
-    '/waste-records': [
-      { module: 'WasteRecords', action: 'View' },
-    ],
-    '/quality-inspections': [
-      { module: 'QualityInspections', action: 'View' },
-    ],
-    '/warehouses': [
-      { module: 'Warehouses', action: 'View' },
-    ],
-    '/product-types': [
-      { module: 'ProductTypes', action: 'View' },
-    ],
-    '/stock-items': [
-      { module: 'StockItems', action: 'View' },
-    ],
-    '/stock-alerts': [
-      { module: 'StockAlerts', action: 'View' },
-    ],
-    '/inventory-transactions': [
-      { module: 'InventoryTransactions', action: 'View' },
-    ],
-    '/purchase-orders': [
-      { module: 'PurchaseOrders', action: 'View' },
-    ],
-    '/purchase-order-items': [
-      { module: 'PurchaseOrderItems', action: 'View' },
-    ],
-    '/customers': [
-      { module: 'Customers', action: 'View' },
-    ],
-    '/sales-orders': [
-      { module: 'SalesOrders', action: 'View' },
-    ],
-    '/sales-order-items': [
-      { module: 'SalesOrderItems', action: 'View' },
-    ],
-    '/invoices': [
-      { module: 'Invoices', action: 'View' },
-    ],
-    '/payments': [
-      { module: 'Payments', action: 'View' },
-    ],
-    '/transport-companies': [
-      { module: 'TransportCompanies', action: 'View' },
-    ],
-    '/trucks': [
-      { module: 'Trucks', action: 'View' },
-    ],
-    '/drivers': [
-      { module: 'Drivers', action: 'View' },
-    ],
-    '/routes': [
-      { module: 'Routes', action: 'View' },
-    ],
-    '/shipments': [
-      { module: 'Shipments', action: 'View' },
-    ],
-    '/fuel-logs': [
-      { module: 'FuelLogs', action: 'View' },
-    ],
-  };
-
-  // Check if user has permission
-  const hasPermission = (moduleName, actionType) => {
-    if (!userPermissions || userPermissions.length === 0) {
-      return false;
-    }
-
-    return userPermissions.some(
-      perm => perm.module_name === moduleName && perm.action_type === actionType
-    );
-  };
-
-  // Check if user has ANY of the required permissions
-  const hasAnyPermission = (path) => {
-    const requiredPerms = routePermissions[path];
+  // Map routes to their module groups
+  const routeToModuleMap = {
+    // Dashboard & Profile - Always accessible
+    '/': null,
+    '/profile': null,
     
-    // If true (dashboard/profile), always allow
-    if (requiredPerms === true) {
-      return true;
-    }
+    // User Management Group
+    '/users': 'User Management',
+    '/permissions': 'User Management',
+    '/roles': 'User Management',
+    '/role-permissions': 'User Management',
+    
+    // HR & Employees Group
+    '/employees': 'HR & Employees',
+    '/worker-assignments': 'HR & Employees',
+    '/management-insights': 'HR & Employees',
+    
+    // Suppliers Group
+    '/suppliers': 'Suppliers',
+    '/supplier-performance': 'Suppliers',
+    '/supplier-contracts': 'Suppliers',
+    
+    // Forest & Harvesting Group
+    '/forests': 'Forest & Harvesting',
+    '/tree-species': 'Forest & Harvesting',
+    '/harvest-schedules': 'Forest & Harvesting',
+    '/harvest-batches': 'Forest & Harvesting',
+    
+    // Processing & Sawmill Group
+    '/sawmills': 'Processing & Sawmill',
+    '/processing-units': 'Processing & Sawmill',
+    '/processing-orders': 'Processing & Sawmill',
+    '/maintenance-records': 'Processing & Sawmill',
+    '/waste-records': 'Processing & Sawmill',
+    
+    // Quality Control Group
+    '/quality-inspections': 'Quality Control',
+    
+    // Warehouse & Inventory Group
+    '/warehouses': 'Warehouse & Inventory',
+    '/product-types': 'Warehouse & Inventory',
+    '/stock-items': 'Warehouse & Inventory',
+    '/stock-alerts': 'Warehouse & Inventory',
+    '/inventory-transactions': 'Warehouse & Inventory',
+    
+    // Procurement Group
+    '/purchase-orders': 'Procurement',
+    '/purchase-order-items': 'Procurement',
+    
+    // Sales & Customers Group
+    '/customers': 'Sales & Customers',
+    '/sales-orders': 'Sales & Customers',
+    '/sales-order-items': 'Sales & Customers',
+    
+    // Financial Group
+    '/invoices': 'Invoicing & Payments',
+    '/payments': 'Invoicing & Payments',
+    
+    // Transportation Group
+    '/transport-companies': 'Transportation',
+    '/trucks': 'Transportation',
+    '/drivers': 'Transportation',
+    '/routes': 'Transportation',
+    '/shipments': 'Transportation',
+    '/fuel-logs': 'Transportation',
+  };
 
-    // If no permissions defined, deny
-    if (!requiredPerms) {
-      console.log(`❌ [ProtectedRoute] No permission mapping for path: ${path}`);
-      return false;
-    }
+  // Check if user has ANY permission for a module (READ, CREATE, UPDATE, or DELETE)
+  const hasModuleAccess = (moduleName) => {
+    if (!moduleName) return true; // Dashboard/Profile
+    if (!userPermissions || userPermissions.length === 0) return false;
 
-    // If no user permissions, deny
-    if (!userPermissions || userPermissions.length === 0) {
-      console.log(`❌ [ProtectedRoute] User has no permissions`);
-      return false;
-    }
-
-    // Check if user has ANY of the required permissions
-    const hasAccess = requiredPerms.some(reqPerm => 
-      hasPermission(reqPerm.module, reqPerm.action)
+    // Check if user has ANY action type for this module
+    const hasAccess = userPermissions.some(
+      perm => perm.module_name === moduleName
     );
 
-    console.log(`🔍 [ProtectedRoute] Access check for ${path}: ${hasAccess ? '✅ GRANTED' : '❌ DENIED'}`);
+    console.log(`🔍 [ProtectedRoute] Module "${moduleName}" access: ${hasAccess ? '✅ GRANTED' : '❌ DENIED'}`);
+    
+    if (hasAccess) {
+      const userActions = userPermissions
+        .filter(p => p.module_name === moduleName)
+        .map(p => p.action_type);
+      console.log(`   Actions available: ${userActions.join(', ')}`);
+    }
+
     return hasAccess;
+  };
+
+  // Check if user can access a specific path
+  const hasPathAccess = (path) => {
+    const moduleName = routeToModuleMap[path];
+    
+    if (moduleName === undefined) {
+      console.log(`⚠️ [ProtectedRoute] No module mapping for path: ${path}`);
+      return false;
+    }
+
+    return hasModuleAccess(moduleName);
   };
 
   // ==================== LOADING STATE ====================
@@ -263,35 +190,18 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
   }
 
   // ==================== CHECK PATH PERMISSIONS ====================
-  const hasAccess = hasAnyPermission(currentPath);
+  const hasAccess = hasPathAccess(currentPath);
 
   if (!hasAccess && !isPublicPath) {
+    const requiredModule = routeToModuleMap[currentPath];
     return <AccessDenied 
       path={currentPath} 
       user={user} 
       permissions={userPermissions}
-      requiredPermissions={routePermissions[currentPath] || []}
+      requiredModule={requiredModule}
       logout={logout}
       navigate={navigate}
     />;
-  }
-
-  // ==================== CHECK CUSTOM PERMISSION (OPTIONAL) ====================
-  if (requiredPermission) {
-    const { module, action } = requiredPermission;
-    const hasCustomPermission = hasPermission(module, action);
-
-    if (!hasCustomPermission) {
-      return <AccessDenied 
-        path={currentPath} 
-        user={user} 
-        permissions={userPermissions}
-        requiredModule={module}
-        requiredAction={action}
-        logout={logout}
-        navigate={navigate}
-      />;
-    }
   }
 
   // ==================== AUTHORIZED - RENDER CHILDREN ====================
@@ -408,11 +318,8 @@ const NoRoleAssigned = ({ user, path, logout, navigate }) => {
 };
 
 // ==================== ACCESS DENIED COMPONENT ====================
-const AccessDenied = ({ path, user, permissions, requiredPermissions, requiredModule, requiredAction, logout, navigate }) => {
+const AccessDenied = ({ path, user, permissions, requiredModule, logout, navigate }) => {
   const [refreshing, setRefreshing] = React.useState(false);
-  const requiredModules = requiredPermissions && Array.isArray(requiredPermissions)
-    ? [...new Set(requiredPermissions.map(p => p.module))]
-    : [];
 
   const handleRefreshSession = () => {
     setRefreshing(true);
@@ -456,10 +363,10 @@ const AccessDenied = ({ path, user, permissions, requiredPermissions, requiredMo
             <strong style={styles.detailLabel}>Path:</strong>
             <span>{path}</span>
           </div>
-          {requiredModules.length > 0 && (
+          {requiredModule && (
             <div style={styles.detailItem}>
-              <strong style={styles.detailLabel}>Required Access:</strong>
-              <span>Any permission from: {requiredModules.join(', ')}</span>
+              <strong style={styles.detailLabel}>Required Module:</strong>
+              <span>{requiredModule} (any action: READ, CREATE, UPDATE, or DELETE)</span>
             </div>
           )}
           <div style={styles.detailItem}>

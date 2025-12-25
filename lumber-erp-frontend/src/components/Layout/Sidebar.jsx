@@ -48,46 +48,38 @@ const Sidebar = () => {
 
       try {
         setLoading(true);
-        console.log('🔍 Fetching permissions for user:', user.user_id);
+        console.log('🔍 [Sidebar] Fetching permissions for user:', user.user_id);
 
-        // Step 1: Get user's role
         const rolesResponse = await axios.get(`${API_URL}/roles`);
         const userRole = rolesResponse.data.find(role => role.user_id === user.user_id);
         
         if (!userRole) {
-          console.warn('⚠️ No role found for user');
+          console.warn('⚠️ [Sidebar] No role found for user');
           setUserPermissions([]);
           setLoading(false);
           return;
         }
 
-        console.log('✅ User role:', userRole);
+        console.log('✅ [Sidebar] User role:', userRole);
 
-        // Step 2: Get role permissions (role_id + permission_id pairs)
         const rolePermsResponse = await axios.get(`${API_URL}/rolepermissions`);
         const userRolePerms = rolePermsResponse.data.filter(
           rp => rp.role_id === userRole.role_id
         );
 
-        console.log('📋 Role permission mappings:', userRolePerms);
-
-        // Step 3: Get all permissions details
         const permissionsResponse = await axios.get(`${API_URL}/permissions`);
         const allPermissions = permissionsResponse.data;
 
-        console.log('📚 All permissions:', allPermissions);
-
-        // Step 4: Match permission IDs to get full permission details
         const userPermissionDetails = userRolePerms.map(rp => {
           const permDetail = allPermissions.find(p => p.permission_id === rp.permission_id);
           return permDetail;
-        }).filter(Boolean); // Remove any undefined matches
+        }).filter(Boolean);
 
-        console.log('✅ User permissions:', userPermissionDetails);
+        console.log('✅ [Sidebar] User permissions:', userPermissionDetails);
         setUserPermissions(userPermissionDetails);
 
       } catch (error) {
-        console.error('❌ Error fetching permissions:', error);
+        console.error('❌ [Sidebar] Error fetching permissions:', error);
         setUserPermissions([]);
       } finally {
         setLoading(false);
@@ -97,179 +89,36 @@ const Sidebar = () => {
     fetchUserPermissions();
   }, [user]);
 
-  // Check if user has permission
-  const hasPermission = (moduleName, actionType) => {
+  // Check if user has ANY permission for a module
+  const hasModuleAccess = (moduleName) => {
     if (!userPermissions || userPermissions.length === 0) {
       return false;
     }
 
     return userPermissions.some(
-      perm => perm.module_name === moduleName && perm.action_type === actionType
-    );
-  };
-
-  // Check if user has ANY permission for a path
-  const hasPathPermission = (path) => {
-    const routePermissions = {
-      '/': true,  // Always accessible
-      '/profile': true,  // Always accessible
-      '/users': [
-        { module: 'Users', action: 'View' },
-        { module: 'User Management', action: 'READ' },
-        { module: 'User Management', action: 'CREATE' },
-      ],
-      '/permissions': [
-        { module: 'Permissions', action: 'View' },
-        { module: 'User Management', action: 'READ' },
-      ],
-      '/roles': [
-        { module: 'Roles', action: 'View' },
-        { module: 'User Management', action: 'READ' },
-      ],
-      '/role-permissions': [
-        { module: 'RolePermissions', action: 'View' },
-        { module: 'User Management', action: 'READ' },
-      ],
-      '/employees': [
-        { module: 'Employees', action: 'View' },
-        { module: 'HR & Employees', action: 'READ' },
-      ],
-      '/worker-assignments': [
-        { module: 'WorkerAssignments', action: 'View' },
-        { module: 'HR & Employees', action: 'READ' },
-      ],
-      '/management-insights': [
-        { module: 'ManagementInsights', action: 'View' },
-        { module: 'HR & Employees', action: 'READ' },
-      ],
-      '/suppliers': [
-        { module: 'Suppliers', action: 'View' },
-      ],
-      '/supplier-performance': [
-        { module: 'SupplierPerformance', action: 'View' },
-        { module: 'Suppliers', action: 'READ' },
-      ],
-      '/supplier-contracts': [
-        { module: 'SupplierContracts', action: 'View' },
-        { module: 'Suppliers', action: 'READ' },
-      ],
-      '/forests': [
-        { module: 'Forests', action: 'View' },
-      ],
-      '/tree-species': [
-        { module: 'TreeSpecies', action: 'View' },
-      ],
-      '/harvest-schedules': [
-        { module: 'HarvestSchedules', action: 'View' },
-      ],
-      '/harvest-batches': [
-        { module: 'HarvestBatches', action: 'View' },
-      ],
-      '/sawmills': [
-        { module: 'Sawmills', action: 'View' },
-      ],
-      '/processing-units': [
-        { module: 'ProcessingUnits', action: 'View' },
-      ],
-      '/processing-orders': [
-        { module: 'ProcessingOrders', action: 'View' },
-      ],
-      '/maintenance-records': [
-        { module: 'MaintenanceRecords', action: 'View' },
-      ],
-      '/waste-records': [
-        { module: 'WasteRecords', action: 'View' },
-      ],
-      '/quality-inspections': [
-        { module: 'QualityInspections', action: 'View' },
-      ],
-      '/warehouses': [
-        { module: 'Warehouses', action: 'View' },
-      ],
-      '/product-types': [
-        { module: 'ProductTypes', action: 'View' },
-      ],
-      '/stock-items': [
-        { module: 'StockItems', action: 'View' },
-      ],
-      '/stock-alerts': [
-        { module: 'StockAlerts', action: 'View' },
-      ],
-      '/inventory-transactions': [
-        { module: 'InventoryTransactions', action: 'View' },
-      ],
-      '/purchase-orders': [
-        { module: 'PurchaseOrders', action: 'View' },
-      ],
-      '/purchase-order-items': [
-        { module: 'PurchaseOrderItems', action: 'View' },
-      ],
-      '/customers': [
-        { module: 'Customers', action: 'View' },
-      ],
-      '/sales-orders': [
-        { module: 'SalesOrders', action: 'View' },
-      ],
-      '/sales-order-items': [
-        { module: 'SalesOrderItems', action: 'View' },
-      ],
-      '/invoices': [
-        { module: 'Invoices', action: 'View' },
-      ],
-      '/payments': [
-        { module: 'Payments', action: 'View' },
-      ],
-      '/transport-companies': [
-        { module: 'TransportCompanies', action: 'View' },
-      ],
-      '/trucks': [
-        { module: 'Trucks', action: 'View' },
-      ],
-      '/drivers': [
-        { module: 'Drivers', action: 'View' },
-      ],
-      '/routes': [
-        { module: 'Routes', action: 'View' },
-      ],
-      '/shipments': [
-        { module: 'Shipments', action: 'View' },
-      ],
-      '/fuel-logs': [
-        { module: 'FuelLogs', action: 'View' },
-      ],
-    };
-
-    const requiredPerms = routePermissions[path];
-    
-    // If true (dashboard/profile), always allow
-    if (requiredPerms === true) {
-      return true;
-    }
-
-    // If no permissions defined, deny
-    if (!requiredPerms) {
-      return false;
-    }
-
-    // If no user permissions, deny
-    if (!userPermissions || userPermissions.length === 0) {
-      return false;
-    }
-
-    // Check if user has ANY of the required permissions
-    return requiredPerms.some(reqPerm => 
-      hasPermission(reqPerm.module, reqPerm.action)
+      perm => perm.module_name === moduleName
     );
   };
 
   const allMenuItems = [
-    { path: '/', icon: LayoutDashboard, label: 'Dashboard', alwaysShow: true },
-    { path: '/profile', icon: UserIcon, label: 'My Profile', alwaysShow: true },
+    { 
+      path: '/', 
+      icon: LayoutDashboard, 
+      label: 'Dashboard', 
+      alwaysShow: true 
+    },
+    { 
+      path: '/profile', 
+      icon: UserIcon, 
+      label: 'My Profile', 
+      alwaysShow: true 
+    },
     
     {
       label: 'User Management',
       icon: Users,
       key: 'users',
+      moduleName: 'User Management',
       children: [
         { path: '/users', label: 'Users' },
         { path: '/permissions', label: 'Permissions' },
@@ -282,6 +131,7 @@ const Sidebar = () => {
       label: 'HR & Employees',
       icon: Briefcase,
       key: 'hr',
+      moduleName: 'HR & Employees',
       children: [
         { path: '/employees', label: 'Employees' },
         { path: '/worker-assignments', label: 'Assignments' },
@@ -293,6 +143,7 @@ const Sidebar = () => {
       label: 'Suppliers',
       icon: Building,
       key: 'suppliers',
+      moduleName: 'Suppliers',
       children: [
         { path: '/suppliers', label: 'Suppliers' },
         { path: '/supplier-performance', label: 'Performance' },
@@ -304,6 +155,7 @@ const Sidebar = () => {
       label: 'Forest & Harvesting',
       icon: TreePine,
       key: 'forest',
+      moduleName: 'Forest & Harvesting',
       children: [
         { path: '/forests', label: 'Forests' },
         { path: '/tree-species', label: 'Tree Species' },
@@ -316,6 +168,7 @@ const Sidebar = () => {
       label: 'Processing',
       icon: Factory,
       key: 'processing',
+      moduleName: 'Processing & Sawmill',
       children: [
         { path: '/sawmills', label: 'Sawmills' },
         { path: '/processing-units', label: 'Units' },
@@ -325,12 +178,18 @@ const Sidebar = () => {
       ]
     },
     
-    { path: '/quality-inspections', icon: CheckCircle, label: 'Quality Control' },
+    { 
+      path: '/quality-inspections', 
+      icon: CheckCircle, 
+      label: 'Quality Control',
+      moduleName: 'Quality Control'
+    },
     
     {
       label: 'Warehouse',
       icon: Package,
       key: 'warehouse',
+      moduleName: 'Warehouse & Inventory',
       children: [
         { path: '/warehouses', label: 'Warehouses' },
         { path: '/product-types', label: 'Product Types' },
@@ -344,6 +203,7 @@ const Sidebar = () => {
       label: 'Procurement',
       icon: ShoppingCart,
       key: 'procurement',
+      moduleName: 'Procurement',
       children: [
         { path: '/purchase-orders', label: 'Purchase Orders' },
         { path: '/purchase-order-items', label: 'PO Items' },
@@ -354,6 +214,7 @@ const Sidebar = () => {
       label: 'Sales',
       icon: ShoppingBag,
       key: 'sales',
+      moduleName: 'Sales & Customers',
       children: [
         { path: '/customers', label: 'Customers' },
         { path: '/sales-orders', label: 'Sales Orders' },
@@ -365,6 +226,7 @@ const Sidebar = () => {
       label: 'Financial',
       icon: DollarSign,
       key: 'financial',
+      moduleName: 'Invoicing & Payments',
       children: [
         { path: '/invoices', label: 'Invoices' },
         { path: '/payments', label: 'Payments' },
@@ -375,6 +237,7 @@ const Sidebar = () => {
       label: 'Transportation',
       icon: Truck,
       key: 'transport',
+      moduleName: 'Transportation',
       children: [
         { path: '/transport-companies', label: 'Companies' },
         { path: '/trucks', label: 'Trucks' },
@@ -390,24 +253,16 @@ const Sidebar = () => {
     if (!user) return [];
 
     return allMenuItems.filter(item => {
+      // Always show dashboard and profile
       if (item.alwaysShow) {
         return true;
       }
 
-      if (item.children) {
-        const accessibleChildren = item.children.filter(child => 
-          hasPathPermission(child.path)
-        );
-        
-        if (accessibleChildren.length > 0) {
-          item.children = accessibleChildren;
-          return true;
-        }
-        return false;
-      }
-
-      if (item.path) {
-        return hasPathPermission(item.path);
+      // Check if user has access to this module
+      if (item.moduleName) {
+        const hasAccess = hasModuleAccess(item.moduleName);
+        console.log(`🔍 [Sidebar] Module "${item.label}" (${item.moduleName}): ${hasAccess ? '✅ SHOW' : '❌ HIDE'}`);
+        return hasAccess;
       }
 
       return false;
